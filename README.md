@@ -1,2 +1,3 @@
-# lobo_2020
- Captura incidental de lobos marinos
+# Modelo espacio-temporal con INLA
+
+Proyecto IFOP-2020

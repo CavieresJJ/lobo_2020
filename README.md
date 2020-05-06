@@ -1,3 +1,3 @@
-# Modelo para estimar la captura incidental promedio de lobos marinos
+# Modelo espacio-temporal con INLA
 
 Proyecto IFOP-2020

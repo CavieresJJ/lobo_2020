@@ -23,7 +23,7 @@ library(ggmap)
 library(dplyr)
 library(ggpubr)
 
-setwd("C:/Users/Usuario/Desktop/Projects/IFOP_lobo_2020/data")
+setwd("....")
 
 dat_fit = read.csv("dat_fit3.csv", header=T)
 dim(dat_fit)

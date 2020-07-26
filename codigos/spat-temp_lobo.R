@@ -198,10 +198,11 @@ stk.zy <- inla.stack(stk.z, stk.y, stk.zp, stk.yp)
 
 
 #======================================
-#    Formula modelo elegido con GLM
+#    Formula modelo elegido 
 #======================================
-formula = y ~ 0  + z.b0 + y.b0 + ano + pesq + red + mode +
-                                 f(i.z, model=spde) + f(i.y, copy='i.z')
+formula = y ~ 0  + z.b0 + y.b0 + ano + pesq + red + f(mode, model = "rw1") +
+                                                    f(i.z, model=spde) + 
+                                                    f(i.y, copy='i.z')
 
 m0  = inla(formula, 
            family=c('binomial', 'zeroinflatednbinomial0'),
@@ -216,8 +217,9 @@ m0  = inla(formula,
 #======================
 # Formula base  + trim
 #======================
-formula1 = y ~ 0  + z.b0 + y.b0 + ano + pesq + red + mode + trim +
-                                  f(i.z, model=spde) + f(i.y, copy='i.z')
+formula1 = y ~ 0  + z.b0 + y.b0 + ano + pesq + red + f(mode, model = "rw1") + trim +
+                                                     f(i.z, model=spde) + 
+                                                     f(i.y, copy='i.z')
 m1 = inla(formula1, 
           family=c('binomial', 'zeroinflatednbinomial0'),
           data=inla.stack.data(stk.zy), 
@@ -233,9 +235,9 @@ m1 = inla(formula1,
 #========================
 # Formula base + día ('rw1')
 #========================
-formula2 = y ~ 0  + z.b0 + y.b0 + ano + pesq + red + mode +
-  f(dia, model='rw1') +                      
-  f(i.z, model=spde) + f(i.y, copy='i.z')
+formula2 = y ~ 0  + z.b0 + y.b0 + ano + pesq + red + f(mode, model = "rw1") +
+                                                     f(dia, model='rw1') +                      
+                                                     f(i.z, model=spde) + f(i.y, copy='i.z')
 
 m2 = inla(formula2, 
           family=c('binomial', 'zeroinflatednbinomial0'),
@@ -250,8 +252,9 @@ m2 = inla(formula2,
 #============================
 # Formula base + especie objetivo
 #============================
-formula3 = y ~ 0  + z.b0 + y.b0 + ano + pesq + red + mode + espe + 
-  f(i.z, model=spde) + f(i.y, copy='i.z')
+formula3 = y ~ 0  + z.b0 + y.b0 + ano + pesq + red + f(mode, model = "rw1") + espe + 
+                                                     f(i.z, model=spde) +  
+                                                     f(i.y, copy='i.z')
 
 m3 = inla(formula3, 
           family=c('binomial', 'zeroinflatednbinomial0'),
@@ -265,8 +268,9 @@ m3 = inla(formula3,
 #============================
 # Formula base + distancia lobera
 #============================
-formula4 = y ~ 0  + z.b0 + y.b0  + ano +  pesq + red + mode + dist + 
-  f(i.z, model=spde) + f(i.y, copy='i.z')
+formula4 = y ~ 0  + z.b0 + y.b0  + ano +  pesq + red + f(mode, model = "rw1") + dist + 
+                                                       f(i.z, model=spde) + 
+                                                       f(i.y, copy='i.z')
 
 m4 = inla(formula4, 
           family=c('binomial', 'zeroinflatednbinomial0'),

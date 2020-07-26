@@ -200,7 +200,7 @@ stk.zy <- inla.stack(stk.z, stk.y, stk.zp, stk.yp)
 #======================================
 #    Formula modelo elegido con GLM
 #======================================
-formula = y ~ 0  + z.b0 + y.b0 + ano + pesq + red + lance + mode +
+formula = y ~ 0  + z.b0 + y.b0 + ano + pesq + red + mode +
                                  f(i.z, model=spde) + f(i.y, copy='i.z')
 
 m0  = inla(formula, 
@@ -216,7 +216,7 @@ m0  = inla(formula,
 #======================
 # Formula base  + trim
 #======================
-formula1 = y ~ 0  + z.b0 + y.b0 + ano + pesq + red + lance + mode + trim +
+formula1 = y ~ 0  + z.b0 + y.b0 + ano + pesq + red + mode + trim +
                                   f(i.z, model=spde) + f(i.y, copy='i.z')
 m1 = inla(formula1, 
           family=c('binomial', 'zeroinflatednbinomial0'),
@@ -233,7 +233,7 @@ m1 = inla(formula1,
 #========================
 # Formula base + día ('rw1')
 #========================
-formula2 = y ~ 0  + z.b0 + y.b0 + ano + pesq + red + lance + mode +
+formula2 = y ~ 0  + z.b0 + y.b0 + ano + pesq + red + mode +
   f(dia, model='rw1') +                      
   f(i.z, model=spde) + f(i.y, copy='i.z')
 
@@ -250,7 +250,7 @@ m2 = inla(formula2,
 #============================
 # Formula base + especie objetivo
 #============================
-formula3 = y ~ 0  + z.b0 + y.b0 + ano + pesq + red + lance + mode + espe + 
+formula3 = y ~ 0  + z.b0 + y.b0 + ano + pesq + red + mode + espe + 
   f(i.z, model=spde) + f(i.y, copy='i.z')
 
 m3 = inla(formula3, 
@@ -265,7 +265,7 @@ m3 = inla(formula3,
 #============================
 # Formula base + distancia lobera
 #============================
-formula4 = y ~ 0  + z.b0 + y.b0  + ano +  pesq + red + lance + mode + dist + 
+formula4 = y ~ 0  + z.b0 + y.b0  + ano +  pesq + red + mode + dist + 
   f(i.z, model=spde) + f(i.y, copy='i.z')
 
 m4 = inla(formula4, 
@@ -351,6 +351,7 @@ dpm$variable <- as.factor(dpm$variable)
 
 dpm$value
 
+x11()
 ggplot(dpm) + geom_tile(aes(Longitud, Latitud, fill = value)) +
   facet_wrap(~variable, nrow = 1) +
   coord_fixed(ratio = 1) +
@@ -360,7 +361,9 @@ ggplot(dpm) + geom_tile(aes(Longitud, Latitud, fill = value)) +
   ) +
   theme_bw()
 
-
+summary(pred_mean)
+summary(pred_ll)
+summary(pred_ul)
 
 # Media posterior para varianza y el rango
 r.f <- inla.spde2.result(m1, 'i.z', spde, do.transf=TRUE)   # "i.z" es el indice espacial declarado en data.stack
@@ -380,7 +383,7 @@ plot.default(r.f$marginals.range.nominal[[1]], type='l',xlab='Practical range', 
 
 library(brinla)
 bri.hyperpar.summary(m1)
-bri.hyperpar.summary(inla.hyperpar(m1)) # Costoso computacionalmente!
+#bri.hyperpar.summary(inla.hyperpar(m1)) # Costoso computacionalmente!
 
 # Para los efectos fijos (incluidos el intercepto)
 bri.fixed.plot(m1)
@@ -431,7 +434,7 @@ xsd      <- inla.mesh.project(projgrid, m1$summary.random$i.y$sd)    # desviació
 x11()
 par(mfrow=c(1,2), mar=c(4,4,3,5))
 image.plot(x=projgrid$x, y=projgrid$y, z=xmean, asp=1,xlab='Longitud', ylab='Latitud', axes=T, cex.axis=0.9, axis.args = list(cex.axis = 0.9))
-plot(shape5)
+plot(shape5, add=T)
 title(main="Media posterior del GMRF")
 image.plot(x=projgrid$x, y=projgrid$y, z=xsd, asp=1,xlab='Longitud', ylab='', axes=T, cex.axis=0.9, axis.args = list(cex.axis = 0.9))
 plot(shape5)

@@ -4,7 +4,7 @@ rm(list=ls(all=TRUE))
 #                                         Proyecto IFOP 2020 - lobos marinos
 #====================================================================================================================================
 
-setwd("C:/Users/Usuario/Desktop/Projects/IFOP_lobo_2020/data")
+setwd("C:/Users/Usuario/Desktop/Projects/Ejecución/IFOP_lobo_2020/data")
 
 # Packages
 library(ggplot2)
@@ -27,13 +27,13 @@ library(dplyr)
 library(ggpubr)
 
 
-# load data "data_cpue"
-dat = read.csv("data.csv", header=T)
+# load data 
+dat = read.csv("data_total2.csv", header=T)
 dim(dat)
 head(dat)
 str(dat)
 
-options(scipen=999)
+options(scipen=99)
 
 #================================================================================================
 # OBSERVACIONES:
@@ -56,21 +56,18 @@ dat$X101 = as.numeric(dat$X101)
 dat$X971 = as.numeric(dat$X971)
 
 
-dat$N_EJEMPLAR = dat$X101 + dat$X971
+dat$N_EJEMPLAR = dat$X101 + dat$X971  # Variable conteo 'N_EJEMPLAR'
 table(dat$N_EJEMPLAR)
 
 
-table(dat$X101_1)
-table(dat$X101_2)
+dat$ESTADO_C1 = ifelse(dat$X101_1 == 0, 0, 1)  # Lobo común muerto = 0, vivo = 1
+dat$ESTADO_F1 = ifelse(dat$X971_1 == 0, 0, 1)  # Lobo fino  muerto = 0, vivo = 1
+
 
 
 # Creamos otra variable para ver la proporción de vivos y/muertos
-dat$N_EJEMPLAR2 = ifelse(dat$N_EJEMPLAR > 0, "Capturados", "No Capturados")
+dat$N_EJEMPLAR2 = ifelse(dat$N_EJEMPLAR > 0, "Con captura incidental", "Sin captura incidental")
 table(dat$N_EJEMPLAR2)
-
-# # Creamos otra variable para ver la proporción de capturados /no capturados totales
-# dat$N_EJEMPLAR3 = ifelse(dat$N_EJEMPLAR > 0, "Capturados", "No Capturados")
-# table(dat$N_EJEMPLAR3)
 
 
 dat$COD_BARCO = as.factor(dat$COD_BARCO)
@@ -85,87 +82,46 @@ dat$MODELO_EXCLUSION = as.factor(dat$MODELO_EXCLUSION)
 
 
 # Creamos variables 'ANO', 'MES' y 'DIA'
-dat$FECHA <-  as.Date(dat$FECHA,'%m/%d/%Y')
+dat$FECHA <-  as.Date(dat$FECHA_LANCE,'%m/%d/%Y')
 dat$ANO <- as.numeric(format(dat$FECHA,'%Y'))
 dat$MES <- as.numeric(format(dat$FECHA,'%m'))
 dat$DIA <- as.numeric(format(dat$FECHA,'%d'))
 
 
-dat$ANO <- as.factor(dat$ANO)
-dat$MES <- as.factor(dat$MES)
-dat$DIA <- as.factor(dat$MES)
+# Vamos a categorizar la variable "MES" en "TRIM"
+library(varhandle)
 
-
+dat$TRIM = ifelse(dat$MES < 4 ,1,ifelse(dat$MES < 7, 2, ifelse(dat$MES < 10, 3, 4)))
 
 # Filtramos las observaciones que efectivamente fueron registradas por el observador
 # basada en la información de la variable 'OBS_CIAMT'
-length(dat$COD_BARCO)
-summary(dat$LAT)                  # Valores + ya que estas celdas estaban en blanco
-
 dat2 = dat %>% filter(OBS_CIAMT == "1")
 length(dat2$COD_BARCO) # Tenemos 10560 observaciones
-summary(dat2$LAT)                 # Aún aparecen celdas + pero las veremos mas adelante
+summary(dat2$LATITUD)  # Celdas con NA
+summary(dat2$LONGITUD)  # Celdas con NA
 
-
-# Vemos celdas vacias en LONGITUD_VIRADO_AR y LATITUD_VIRADO_AR
-summary(dat2$LONGITUD_VIRADO_AR)  # 5 NA
-summary(dat2$LATITUD_VIRADO_AR)   # 4 NA
-
-
-dat2 = dat2 %>% filter(!is.na(dat2$LONGITUD_VIRADO_AR))
+dat2 = dat2 %>% filter(!is.na(dat2$LONGITUD))
 dim(dat2)
-summary(dat2$LAT) # Ya no hay celdas +
+summary(dat2$LATITUD) # Ya no hay celdas +
+
+LAT = as.numeric(substring(dat2$LATITUD,1,2))+as.numeric(substring(dat2$LATITUD,3,4))/60
+as.numeric(substring(dat2$LATITUD,5,6))/3600
+
+LON <- as.numeric(substring(dat2$LONGITUD,1,2))+as.numeric(substring(dat2$LONGITUD,3,4))/60
+as.numeric(substring(dat$LONGITUD,5,6))/3600
 
 
-# Conversión LONGITUD_VIRADO_AR y LATITUD_VIRADO_AR a 'lat-lon' (otra conversión para comprobar la anterior)
-library(proj4)
-proj4string <- "+proj=utm +zone=19 +south +ellps=WGS84 +datum=WGS84 +units=m +no_defs "
+londec <- (-1*(LON))
+latdec <- (-1*(LAT))
 
-# Source data
-xy <- data.frame(x=dat2$LONGITUD_VIRADO_AR, y=dat2$LATITUD_VIRADO_AR)
+dat2$LON2 = londec
+dat2$LAT2 = latdec
 
-# Transformed data
-pj <- project(xy, proj4string, inverse=TRUE)
-latlon <- data.frame(lat=pj$y, lon=pj$x)
-print(latlon)
-
-dat2$LAT2 = latlon$lat
-dat2$LON2 = latlon$lon
-
-length(dat2$COD_BARCO)
-length(dat2$LAT)
-length(dat2$LON)
-
-# Comprobamos que sean identicas las transformaciones (en excel primeramente y en R luego)
-identical(dat2[['LAT']], dat2[['LAT2']]) # No son iguales
-identical(dat2[['LON']], dat2[['LON2']])
-
-dat2[, c("LAT", "LAT2")]  
-dat2[, c("LON", "LON2")]  
-
-
-dat2$LON - dat2$LON2
-dat2$LAT - dat2$LAT2
-
-
-# La diferencia es minima asi que nos quedaremos con las variables estimadas en R
-
-
-# # Hay 12 observaciones con registros mayores a '80' en la variable LAT y probablemente
-# # sea un error de digitación
-# summary(dat2$LAT)                    # Existen valores atipicos (> a 80 latitud)
-# count(dat2 %>% filter(LAT > -83.2))  # 2 valores atipicos que seran eliminados
-# dat2 %>% filter(LAT > -83.2)
-# 
-# # Generamos la nueva base de datos a utilizar sin los registros previos
-# dat2 = dat2 %>% filter(LAT < -83.2)
-# length(dat2$COD_BARCO) # Tenemos 10558 observaciones
-
+summary(dat2$LON2)
+summary(dat2$LAT2)
 
 # Revisamos si existen NA en las variables relevantes
 glimpse(dat2)
-
-
 
 
 #=======================================
@@ -334,6 +290,18 @@ hist(dat2$PROFUNDIDAD_PROM)
 
 
 
+#=============================
+# Nueva especie objetivo
+#=============================
+
+dat2$ESPECIE_OBJETIVO_LANCE2 = factor(dat2$ESPECIE_OBJETIVO_LANCE, exclude = NULL, 
+                          levels = c("1", "2",  "3", "4", "5",  "6", "7", "27", "29", "45", "96"), 
+                          labels = c("1", "2",  "3", "4", "1",  "1", "1", "27", "1", "1", "1"))
+table(dat2$ESPECIE_OBJETIVO_LANCE2, exclude = NULL) # donde "4" es un nuevo nivel "sin información"
+
+
+
+
 #================================
 #        COD_PESQUERIA
 #================================
@@ -342,11 +310,7 @@ count(dat2, "COD_PESQUERIA")
 count(dat2, c("ANO", "COD_PESQUERIA", "N_EJEMPLAR"))   # captura por buque
 
 dat2 %>%
-  group_by(ANO) %>%
-  summarise_at(vars(N_EJEMPLAR), funs(mean(., na.rm=TRUE)))
-
-dat2 %>%
-  group_by(MES) %>%
+  group_by(COD_PESQUERIA) %>%
   summarise_at(vars(N_EJEMPLAR), funs(mean(., na.rm=TRUE)))
 
 
@@ -356,10 +320,19 @@ aggregate(N_EJEMPLAR ~ COD_PESQUERIA + ANO, data = dat2, FUN= "sum" ) # Suma de 
 
 
 
+
 ddply(dat2, c("ANO", "COD_PESQUERIA"), summarise,
-      mean_n_ejemplar=mean(N_EJEMPLAR),
+      media_n_ejemplar=mean(N_EJEMPLAR),
       max_n_ejemplar=max(N_EJEMPLAR),
       n.obs=length(N_EJEMPLAR))
+
+
+ddply(dat2, c("ANO", "CLASE_LANCE"), summarise,
+      media_n_ejemplar=mean(N_EJEMPLAR),
+      max_n_ejemplar=max(N_EJEMPLAR),
+      n.obs=length(N_EJEMPLAR))
+
+
 
 #====================
 #  ESPECIE OBJETIVO
@@ -372,7 +345,9 @@ aggregate(N_EJEMPLAR ~ ESPECIE_OBJETIVO_LANCE + ANO, data = dat2, FUN= "mean" ) 
 aggregate(N_EJEMPLAR ~ ESPECIE_OBJETIVO_LANCE + ANO, data = dat2, FUN= "sum" ) # Suma de lobos capturados por año y pesquería
 
 
-ddply(dat2, c("ANO", "ESPECIE_OBJETIVO_LANCE"), summarise,
+levels(dat2$COD_PESQUERIA) <- c("Fábrica", "Hielera")
+
+ddply(dat2, c("ANO", "COD_PESQUERIA"), summarise,
       max_n_ejemplar=max(N_EJEMPLAR),
       n.obs=length(N_EJEMPLAR))
 
@@ -381,9 +356,12 @@ ddply(dat2, c("ANO", "CLASE_LANCE"), summarise,
       n.obs=length(N_EJEMPLAR))
 
 
+library(data.table)
+setDT(dat2)[, list(Sum_N_ejemplar = sum(N_EJEMPLAR)), keyby = list(ANO, COD_PESQUERIA)][,Porcentaje := paste0(round(Sum_N_ejemplar/sum(Sum_N_ejemplar), 2)*100, "%"), by = ANO][]
+
+
 
 # Calcula el porcentaje de lobos capturados para un año y por pesquería
-library(data.table)
 setDT(dat2)[, list(Sum_N_ejemplar = sum(N_EJEMPLAR)), keyby = list(ANO, ESPECIE_OBJETIVO_LANCE)][,Porcentaje := paste0(round(Sum_N_ejemplar/sum(Sum_N_ejemplar), 2)*100, "%"), by = ANO][]
 
 
@@ -393,16 +371,16 @@ setDT(dat2)[, list(Sum_N_ejemplar = sum(N_EJEMPLAR)), keyby = list(ANO, MODELO_E
 
 
 
+aggregate(N_EJEMPLAR ~ COD_PESQUERIA, data = dat2, FUN= "sum" )
 
-
-
+x11()
 library(scales)
 ggplot(data = dat2, aes(x = N_EJEMPLAR2, fill = N_EJEMPLAR2)) +
   geom_bar(alpha = 1/2, aes(y = (..count..)/sum(..count..))) +
   scale_fill_manual(values = c("blue", "orangered2"))+
   geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", vjust = -0.25) +
   scale_y_continuous(labels = percent) +
-  labs(title = "Proporción captura incidental en total de observaciones", y = "Porcentaje(%)", x = "") +
+  labs(title = "Proporción de lances con captura incidental", y = "Porcentaje(%)", x = "") +
   theme_bw() +
   theme(plot.title = element_text(hjust = 0.5)) +
   theme(legend.position = "none") + 
@@ -418,7 +396,7 @@ plot_fabrica = ggplot(data = dat_fabrica, aes(x = N_EJEMPLAR2, fill = N_EJEMPLAR
   scale_fill_manual(values = c("blue", "orangered2"))+
   geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", vjust = -0.25) +
   scale_y_continuous(labels = percent) +
-  labs(title = "Proporción captura incidental FABRICA", y = "Porcentaje(%)", x = "") +
+  labs(title = "Flota FÁBRICA", y = "Porcentaje(%)", x = "") +
   theme_bw() +
   theme(plot.title = element_text(hjust = 0.5)) +
   theme(legend.position = "none") + 
@@ -435,7 +413,7 @@ plot_hielera = ggplot(data = dat_hielera, aes(x = N_EJEMPLAR2, fill = N_EJEMPLAR
   scale_fill_manual(values = c("blue", "orangered2"))+
   geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", vjust = -0.25) +
   scale_y_continuous(labels = percent) +
-  labs(title = "Proporción captura incidental HIELERA", y = "Porcentaje(%)", x = "") +
+  labs(title = "Flota HIELERA", y = "Porcentaje(%)", x = "") +
   theme_bw() +
   theme(plot.title = element_text(hjust = 0.5)) +
   theme(legend.position = "none") + 
@@ -443,31 +421,106 @@ plot_hielera = ggplot(data = dat_hielera, aes(x = N_EJEMPLAR2, fill = N_EJEMPLAR
         axis.title=element_text(size=14,face="bold")) + 
   theme(plot.title = element_text(size = 17))
 
+
+# Gráfico Fábrica y Hielera
 grid.arrange(plot_fabrica, plot_hielera, ncol = 2)
 
 
 
 
-library(ggplot2)
-library(scales)
-library(viridis)
-library(hrbrthemes)
-
-
-# Gráfico 'CLASE_LANCE'
-ggplot(data = dat2, aes(x = N_EJEMPLAR2, fill = N_EJEMPLAR2)) +
-  geom_bar(alpha = 1/2, aes(y = (..count..)/sum(..count..))) +
-  scale_fill_manual(values = c("blue", "orangered2"))+
-  geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "count", vjust = -0.25) +
-  scale_y_continuous(labels = percent) +
-  labs(title = "Proporción captura incidental total por flota", y = "Porcentaje(%)", x = "") +
+# Gráfico Fábrica por año
+ggplot(dat_fabrica, aes(x= N_EJEMPLAR2,  group=ANO)) + 
+  geom_bar(aes(y = ..prop.., fill = factor(..x..)), stat="count") +
+  geom_text(aes( label = scales::percent(..prop..),
+                 y= ..prop.. ), stat= "count", vjust = -.1, size = 3) +
+  coord_cartesian(ylim = c(0, 1)) + 
+  labs(title = "Proporción captura incidental FABRICA", y = "Porcentaje(%)", x = "")  +
+  facet_wrap(~ANO) +
+  scale_y_continuous(labels = scales::percent) + 
   theme_bw() +
-  theme(legend.position = "none") +  theme_minimal() +
-  facet_wrap(vars(CLASE_LANCE)) + guides(fill = FALSE) + # esta ultima no muestra la legenda de fill
-  theme(axis.text=element_text(size=14, face = "bold"),
-        axis.title=element_text(size=14,face="bold")) + 
-  theme(plot.title = element_text(hjust = 0.5, size = 16),
-        strip.text = element_text(size = 16))
+  theme(plot.title = element_text(size = 14, hjust = 0.5)) +
+  theme(legend.position = "none") + 
+  theme(axis.text=element_text(size=12, face = "bold"),
+        axis.title=element_text(size=16,face="bold")) + 
+        theme(strip.text = element_text(face="bold", size=12),
+        strip.background = element_rect(fill="white", colour="grey",size=0.2))
+
+# Gráfico Hielera por año
+ggplot(dat_hielera, aes(x= N_EJEMPLAR2,  group=ANO)) + 
+  geom_bar(aes(y = ..prop.., fill = factor(..x..)), stat="count") +
+  geom_text(aes( label = scales::percent(..prop..),
+                 y= ..prop.. ), stat= "count", vjust = -.1, size = 3) +
+  coord_cartesian(ylim = c(0, 1)) + 
+  labs(title = "Proporción captura incidental HIELERA", y = "Porcentaje(%)", x = "")  +
+  facet_wrap(~ANO) +
+  scale_y_continuous(labels = scales::percent) + 
+  theme_bw() +
+  theme(plot.title = element_text(size = 14, hjust = 0.5)) +
+  theme(legend.position = "none") + 
+  theme(axis.text=element_text(size=12, face = "bold"),
+        axis.title=element_text(size=16,face="bold")) + 
+  theme(strip.text = element_text(face="bold", size=12),
+        strip.background = element_rect(fill="white", colour="grey",size=0.2))
+
+
+
+
+#==================================
+#     Estadísticos de resumen
+#==================================
+library(summarytools)
+descr(dat2)
+
+
+table(dat2$COD_PESQUERIA, dat2$CLASE_LANCE, dat2$N_EJEMPLAR2)
+
+
+
+
+
+#====================================================================================================
+# Grafico CLASE_LANCE
+dat_LANCE1 <- dat2 %>% filter(CLASE_LANCE %in% "1")
+
+
+# Gráfico 'CLASE_LANCE1'
+ggplot(dat_LANCE1, aes(x= N_EJEMPLAR2,  group=ANO)) + 
+  geom_bar(aes(y = ..prop.., fill = factor(..x..)), stat="count") +
+  geom_text(aes( label = scales::percent(..prop..),
+                 y= ..prop.. ), stat= "count", vjust = -.1, size = 3) +
+  coord_cartesian(ylim = c(0, 1)) + 
+  labs(title = "Proporción captura incidental CLASE DE LANCE 1", y = "Porcentaje(%)", x = "")  +
+  facet_wrap(~ANO) +
+  scale_y_continuous(labels = scales::percent) + 
+  theme_bw() +
+  theme(plot.title = element_text(size = 14, hjust = 0.5)) +
+  theme(legend.position = "none") + 
+  theme(axis.text=element_text(size=12, face = "bold"),
+        axis.title=element_text(size=16,face="bold")) + 
+  theme(strip.text = element_text(face="bold", size=12),
+        strip.background = element_rect(fill="white", colour="grey",size=0.2))
+
+
+
+# Gráfico 'CLASE_LANCE2'
+dat_LANCE2 <- dat2 %>% filter(CLASE_LANCE %in% "2")
+
+ggplot(dat_LANCE2, aes(x= N_EJEMPLAR2,  group=ANO)) + 
+  geom_bar(aes(y = ..prop.., fill = factor(..x..)), stat="count") +
+  geom_text(aes( label = scales::percent(..prop..),
+                 y= ..prop.. ), stat= "count", vjust = -.1, size = 3) +
+  labs(title = "Proporción captura incidental CLASE DE LANCE 2", y = "Porcentaje(%)", x = "")  +
+  facet_wrap(~ANO) +
+  scale_y_continuous(labels = scales::percent) + 
+  theme_bw() +
+  theme(plot.title = element_text(size = 14, hjust = 0.5)) +
+  theme(legend.position = "none") + 
+  theme(axis.text=element_text(size=12, face = "bold"),
+        axis.title=element_text(size=16,face="bold")) + 
+  theme(strip.text = element_text(face="bold", size=12),
+        strip.background = element_rect(fill="white", colour="grey",size=0.2))
+#====================================================================================================
+
 
 
 
@@ -507,7 +560,97 @@ summarytools::freq(dat2$CLASE_LANCE, report.nas = FALSE, headings = FALSE)
 summarytools::freq(dat2$INTENSIDAD_VIENTO_AR, report.nas = FALSE, headings = FALSE)
 
 # Rmarkdown
-summarytools::freq(dat2$NOMBRE_PESQUERIA, report.nas = FALSE, totals = FALSE,
+summarytools::freq(c(dat2$COD_PESQUERIA, dat2$N_EJEMPLAR), report.nas = FALSE, totals = FALSE,
                    cumul = FALSE, style = "rmarkdown", headings = FALSE)
 
 
+summarytools::freq(dat2$N_EJEMPLAR, report.nas = FALSE, totals = FALSE,
+                   cumul = FALSE, headings = FALSE)
+
+
+library(tidyverse)
+library(iml)
+library(skimr)
+library(DataExplorer)
+library(ggpubr)
+library(univariateML)
+library(recipes)
+library(kableExtra)
+library(magrittr)
+
+
+
+# Vamos a seleccionar las variables que creemos importantes para el análisis
+dat2 = dat2[, c("N_EJEMPLAR", "ESTADO_C1", "ESTADO_F1", "ANO", "MES", "DIA", "TRIM", "COD_BARCO", "COD_PESQUERIA", 
+                "TIPO_DE_RED", "CLASE_LANCE", "MODELO_EXCLUSION", "INTENSIDAD_VIENTO_AR", 
+                "distancia_Km", "Nlobos_lobera", "lobera_cercana",
+                "ESPECIE_OBJETIVO_LANCE2", "ESPECIE_OBJETIVO_LANCE", "PROFUNDIDAD_PROM", "LAT2", "LON2")]
+
+kable(dat2, "latex", booktabs = T)
+
+
+skim(dat2)
+
+skim(dat2) %>%
+  yank("numeric")
+
+iris_list <- skimr::skim_to_list(dat2)
+
+iris_list %>% .$factor %>% 
+  knitr::kable( caption = 'Factor Variables', format = 'latex', booktabs = T ) %>% 
+  kable_styling(latex_options = 'HOLD_position', font_size = 9)
+
+iris_list  %>% .$numeric %>% 
+  knitr::kable( caption = 'Numeric Variables', booktabs = T ) %>% 
+  kable_styling(latex_options = 'HOLD_position', font_size = 9)
+
+
+# Número de datos ausentes por variable
+dat2 %>% map_dbl(.f = function(x){sum(is.na(x))})
+
+
+plot_missing(
+  data    = dat2, 
+  #title   = "Porcentaje de valores ausentes",
+  ggtheme = theme_bw(),
+  theme_config = list(xlab = ",", axis.title.x = element_text(color="blue", size=14, face="bold"),
+    axis.text=element_text(size=6),legend.position = "none") , 
+)
+
+
+
+
+
+plot_bar(
+  dat2,
+  ncol    = 4,
+  title   = "Número de observaciones por grupo",
+  ggtheme = theme_bw(),
+  theme_config = list(
+    plot.title = element_text(size = 16, face = "bold"),
+    strip.text = element_text(colour = "black", size = 12, face = 2),
+    legend.position = "none"
+  )
+)
+
+
+
+
+levels(dat2$COD_PESQUERIA) <- c("Fábrica", "Hielera")
+
+p = ggplot(dat2, aes(x=N_EJEMPLAR))+ geom_histogram(color="black", fill="grey")+
+  facet_grid(COD_PESQUERIA ~ .)
+p  + theme_bw() 
+
+p + scale_color_brewer(palette="black") + 
+  theme_classic()+theme(legend.position="top") + 
+  labs(title = "", y = "Frecuencia", x = "N° ejemplares capturados") + theme_bw() + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(legend.position = "none") + 
+  theme(axis.text=element_text(size=9, face = "bold"),
+        axis.title=element_text(size=9,face="bold")) + 
+  theme(plot.title = element_text(size = 10))
+
+#==========================================================
+# Escribimos los datos que vamos a utilizar para modelar
+write.csv(dat2 ,"dat_fit5.csv")

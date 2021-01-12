@@ -23,7 +23,7 @@ library(ggmap)
 library(dplyr)
 library(ggpubr)
 
-setwd("C:/Users/Usuario/Desktop/Projects/Ejecución/IFOP_lobo_2020/data")
+setwd("C:/Users/Usuario/Desktop/Projects/2020/Ejecución/IFOP_lobo_2020/Presentación")
 
 dat_fit = read.csv("dat_fit3.csv", header=T)
 dim(dat_fit)
@@ -45,75 +45,14 @@ dat_fit$DIA = as.numeric(dat_fit$DIA)
 dat_fit$distancia_Km = as.numeric(dat_fit$distancia_Km)
 
 # leer archivo shape
-new_sp <- readOGR(dsn = "C:/Users/Usuario/Desktop/Projects/Ejecución/IFOP_lobo_2020/mapas/Shape_zona", layer = "zona2")
+new_sp <- readOGR(dsn = "C:/Users/Usuario/Desktop/Projects/2020/Ejecución/IFOP_lobo_2020/mapas/Shape_zona", layer = "zona2")
 plot(new_sp)
-
-shape5 <- readOGR(dsn = "C:/Users/Usuario/Desktop/Projects/Ejecución/IFOP_lobo_2020/data", layer = "shape5")
-plot(shape5)
 
 
 # Plot
 points(cbind(dat_fit$LON2, dat_fit$LAT2), col = "red")
 
 
-
-#==============================================================================================================
-#                             Modelo espacio-temporal zero-inflated Poisson
-#                               usando el m?todo SPDE para aproximar el GF 
-#==============================================================================================================
-
-# MESH
-coords <- as.matrix(dat_fit[,21:20])
-
-mesh = inla.mesh.2d(boundary = new_sp, cutoff = c(0.1), max.edge = c(0.5, 10), offset = 5)
-plot(mesh, main = '')
-mesh$n
-
-# plot(mesh, ddraw.segments=TRUE, lwd=2,
-#      draw.edges=FALSE, draw.vertices=FALSE,
-#      col="gray", rgl=TRUE)
-
-bnd <- inla.mesh.boundary(mesh)
-inter <- inla.mesh.interior(mesh)
-plot(mesh, draw.segments=FALSE, main = '')
-lines(inter[[1]], col=1, lwd=2)
-
-# #=====================================================================================
-# # THE NEXT LINES OF CODES PRODUCES A VERY FINE MESH (More exppensive computation)
-# 
-# mesh = inla.mesh.2d(loc=mesh_poly$loc, max.edge = c(0.5, 2)*2, offset=0.5)
-# # - This adds an outer extension
-# # - This is needed since the spatial field is incorrect at the outer regions of
-# # the mesh (inflated range and variance)
-# # - This outer extension will not be used for fitting or prediction, it is just
-# # there to fix SPDE boundary approximation issues
-# plot(mesh, main="")
-# mesh$n
-
-
-
-source('functions-barriers-dt-models-march2017.R')
-source('functions-barrier-DT.R')
-
-mesh2 = dt.mesh.addon.posTri(mesh)
-
-
-points = SpatialPoints(mesh2$posTri)
-points@proj4string = shape5@proj4string
-barrier3 = over(shape5, points, returnList=T)
-barrier3 = unlist(barrier3)
-Omega3 = dt.Omega(list(barrier3, 1:mesh2$t), mesh2)
-Omega.SP3 = dt.polygon.omega(mesh2, Omega3)
-
-
-## Visually check correctness
-plot(mesh2, main="")
-plot(Omega.SP3[[1]], add=T, col='darkgrey')
-plot(Omega.SP3[[2]], add=T, col='lightblue')
-plot(mesh, draw.segments=T, main = '', add=T)
-plot(mesh, draw.segments=F, main = '', add=T)
-lines(inter[[1]], col=1, lwd=2)
-plot(Omega.SP3[[1]], add=T, col='coral4')
 
 
 #==============================================================================================================
@@ -137,30 +76,6 @@ inter <- inla.mesh.interior(mesh)
 plot(mesh, draw.segments=FALSE, main = '')
 lines(inter[[1]], col=1, lwd=2)
 
-
-
-source('functions-barriers-dt-models-march2017.R')
-source('functions-barrier-DT.R')
-
-mesh2 = dt.mesh.addon.posTri(mesh)
-
-
-points = SpatialPoints(mesh2$posTri)
-points@proj4string = shape5@proj4string
-barrier3 = over(shape5, points, returnList=T)
-barrier3 = unlist(barrier3)
-Omega3 = dt.Omega(list(barrier3, 1:mesh2$t), mesh2)
-Omega.SP3 = dt.polygon.omega(mesh2, Omega3)
-
-
-## Visually check correctness
-plot(mesh2, main="")
-plot(Omega.SP3[[1]], add=T, col='darkgrey')
-plot(Omega.SP3[[2]], add=T, col='lightblue')
-plot(mesh, draw.segments=T, main = '', add=T)
-plot(mesh, draw.segments=F, main = '', add=T)
-lines(inter[[1]], col=1, lwd=2)
-plot(Omega.SP3[[1]], add=T, col='coral4')
 
 #=====================================================
 # Metodo SPDE con hyperparametros para sigma y rango
